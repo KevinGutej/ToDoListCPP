@@ -1,21 +1,47 @@
 #include <iostream>
-#include <vector>
 #include <fstream>
 
 using namespace std;
 
 struct Task {
-    string description;
-    string priority;
-    string deadline;
+    char description[100];
+    char priority[10];
+    char deadline[15];
     bool completed;
 };
 
-vector<Task> tasks;
+Task tasks[100];
+int taskCount = 0;
+
+void customStrCopy(char *dest, const char *src) {
+    while (*src) {
+        *dest++ = *src++;
+    }
+    *dest = '\0';
+}
+
+int customStrLen(const char *str) {
+    int length = 0;
+    while (str[length] != '\0') {
+        length++;
+    }
+    return length;
+}
+
+bool customStrCmp(const char *str1, const char *str2) {
+    while (*str1 && *str2) {
+        if (*str1 != *str2) {
+            return false;
+        }
+        str1++;
+        str2++;
+    }
+    return *str1 == *str2;
+}
 
 void saveTasks() {
     ofstream file("tasks.txt");
-    for (size_t i = 0; i < tasks.size(); i++) {
+    for (int i = 0; i < taskCount; i++) {
         file << tasks[i].description << "|" << tasks[i].priority << "|" << tasks[i].deadline << "|" << (tasks[i].completed ? "1" : "0") << "\n";
     }
     file.close();
@@ -23,50 +49,51 @@ void saveTasks() {
 
 void loadTasks() {
     ifstream file("tasks.txt");
-    Task task;
-    string completedStr;
-    while (true) {
-        getline(file, task.description, '|');
-        getline(file, task.priority, '|');
-        getline(file, task.deadline, '|');
-        getline(file, completedStr);
-        if (file.eof()) break;
-        task.completed = (completedStr == "1");
-        tasks.push_back(task);
+    if (!file) return;
+    while (file.getline(tasks[taskCount].description, 100, '|')) {
+        file.getline(tasks[taskCount].priority, 10, '|');
+        file.getline(tasks[taskCount].deadline, 15, '|');
+        char completedStr[2];
+        file.getline(completedStr, 2);
+        tasks[taskCount].completed = (completedStr[0] == '1');
+        taskCount++;
     }
     file.close();
 }
 
 void showTasks() {
-    if (tasks.size() == 0) {
+    if (taskCount == 0) {
         cout << "No tasks in the list!\n";
         return;
     }
     cout << "\nYour Tasks:\n";
-    cout << "No.  Description                          Priority  Deadline     Status" << endl;
-    cout << "-------------------------------------------------------------------" << endl;
-    for (size_t i = 0; i < tasks.size(); i++) {
+    cout << "No.  Description                    Priority  Deadline     Status\n";
+    cout << "-------------------------------------------------------------\n";
+    for (int i = 0; i < taskCount; i++) {
         cout << (i + 1) << ". " << tasks[i].description;
-        for (size_t j = tasks[i].description.size(); j < 35; j++) cout << " ";
+        for (int j = customStrLen(tasks[i].description); j < 30; j++) cout << " ";
         cout << tasks[i].priority;
-        for (size_t j = tasks[i].priority.size(); j < 10; j++) cout << " ";
+        for (int j = customStrLen(tasks[i].priority); j < 10; j++) cout << " ";
         cout << tasks[i].deadline;
-        for (size_t j = tasks[i].deadline.size(); j < 15; j++) cout << " ";
+        for (int j = customStrLen(tasks[i].deadline); j < 15; j++) cout << " ";
         cout << (tasks[i].completed ? "Completed" : "Pending") << endl;
     }
 }
 
 void addTask() {
-    Task task;
+    if (taskCount >= 100) {
+        cout << "Task list is full!\n";
+        return;
+    }
     cout << "Enter task description: ";
     cin.ignore();
-    getline(cin, task.description);
+    cin.getline(tasks[taskCount].description, 100);
     cout << "Enter priority (Low, Medium, High): ";
-    getline(cin, task.priority);
+    cin.getline(tasks[taskCount].priority, 10);
     cout << "Enter deadline (YYYY-MM-DD): ";
-    getline(cin, task.deadline);
-    task.completed = false;
-    tasks.push_back(task);
+    cin.getline(tasks[taskCount].deadline, 15);
+    tasks[taskCount].completed = false;
+    taskCount++;
     saveTasks();
 }
 
@@ -75,11 +102,11 @@ void removeTask() {
     cout << "Enter task number to remove: ";
     int num;
     cin >> num;
-    if (num > 0 && num <= (int)tasks.size()) {
-        for (size_t i = num - 1; i < tasks.size() - 1; i++) {
+    if (num > 0 && num <= taskCount) {
+        for (int i = num - 1; i < taskCount - 1; i++) {
             tasks[i] = tasks[i + 1];
         }
-        tasks.pop_back();
+        taskCount--;
         saveTasks();
     } else {
         cout << "Invalid task number!\n";
@@ -91,7 +118,7 @@ void markTaskComplete() {
     cout << "Enter task number to mark as completed: ";
     int num;
     cin >> num;
-    if (num > 0 && num <= (int)tasks.size()) {
+    if (num > 0 && num <= taskCount) {
         tasks[num - 1].completed = true;
         saveTasks();
     } else {
